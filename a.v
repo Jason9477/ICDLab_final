@@ -139,7 +139,7 @@ end
 integer  i;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < 8; i = i + 1) begin
+            for (i = 0; i < 49; i = i + 1) begin
                 img1[i] <= 8'b0;
             end
             row_reg <= 0;
