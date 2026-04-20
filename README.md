@@ -1,5 +1,5 @@
-//=============0416====================  
-算IxIt
+//=============0420====================  
+完成算sum(IxIt),sum(IyIt),sum(IxIy)
 
 
 //=============0416====================  
@@ -9,7 +9,7 @@
 
 
 
-
+y.py可以生input pattern line19:random_seed(42)暫固定
 為方便tb寫在同一檔案  
 gtkwave無法看packed signal(array) 故以wire展開部分
 input form:  
