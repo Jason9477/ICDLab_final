@@ -21,3 +21,10 @@ Pixel2
 .  
 .  
 Pixel49
+
+img:x bits
+Ix:x+1 bits
+Ix2: (x+1)*2 bits
+sumIx^2: 2x+7
+sum*sum :4x+14 
+ad-bc : 4x+15

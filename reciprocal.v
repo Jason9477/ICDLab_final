@@ -104,3 +104,23 @@ module LOD #(
         end
     endgenerate
 endmodule
+
+module tb;
+reg [26:0] sum;
+wire [16:0] recip;
+reciprocal r(.sum(sum),.recip(recip));
+    initial begin
+        $dumpfile("LK.vcd");
+        $dumpvars();
+        // $fsdbDumpfile("LK.fsdb");
+        // $fsdbDumpvars("+mda", tb, uut);
+
+    end
+
+initial begin
+    sum=20<<16;
+    #50
+    $finish;
+end
+endmodule
+
