@@ -32,3 +32,19 @@ Ix2: (x+1)*2 bits
 sumIx^2: 2x+7
 sum*sum :4x+14 
 ad-bc : 4x+15
+
+$$
+\begin{bmatrix}
+V_x \
+V_y
+\end{bmatrix}
+=
+\begin{bmatrix}
+\sum_i I_x(q_i)^2 & \sum_i I_x(q_i) I_y(q_i) \
+\sum_i I_y(q_i) I_x(q_i) & \sum_i I_y(q_i)^2
+\end{bmatrix}^{-1}
+\begin{bmatrix}
+- \sum_i I_x(q_i) I_t(q_i) \
+- \sum_i I_y(q_i) I_t(q_i)
+\end{bmatrix}
+$$
