@@ -56,7 +56,7 @@ wire signed[4*width+13:0] Ix2_ext = Ix2;
 wire signed[4*width+13:0] Iy2_ext = Iy2;
 wire signed [4*width+13:0] Ux = -(Iy2_ext * IxIt) + (IxIy * IyIt); //-(197316*36516)+(-156086*-15534) =-4780551168
 wire signed [4*width+13:0] Uy = -(Ix2_ext * IyIt)+ (IxIy * IxIt);//-(341126*-15534) + (-156086*36516)
-wire signed [4*width+13:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
+// wire signed [4*width+13:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
 assign Vx = Ux;
 assign Vy = Uy;
 // reciprocal();

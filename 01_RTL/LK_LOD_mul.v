@@ -1,6 +1,7 @@
 module LK #(parameter width = 8)(
     input clk,
     input rst_n,
+    input in_en,
     input [width-1:0] a,
     input [width-1:0] b,
     output wire [4*width+13:0] Vx,
@@ -52,17 +53,58 @@ wire signed [2*width+1:0] IxIt_now = Ix_now*It[4];
 wire signed [2*width+1:0] IyIt_now = Iy_now*It[0];
 wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
 
-wire signed[2*width-1:0] Ix2_shift7 = Ix2 >>> 7;
-wire signed[2*width-1:0] Iy2_shift7 = Iy2 >>> 7;
-wire signed [2*width-1:0] IxIy_shift7 = IxIy >>> 7;
-wire signed [2*width-1:0] IxIt_shift7 = IxIt >>> 7;
-wire signed [2*width-1:0] IyIt_shift7 = IyIt >>> 7;
-wire signed [4*width+1:0] Ux = -(Iy2_shift7 * IxIt_shift7) + (IxIy_shift7 * IyIt_shift7); //-(197316*36516)+(-156086*-15534) =-4780551168
-wire signed [4*width+1:0] Uy = -(Ix2_shift7 * IyIt_shift7)+ (IxIy_shift7 * IxIt_shift7);//-(341126*-15534) + (-156086*36516)
+reg [2 : 0] LOD_counter;
+reg signed [2*width+6:0] LOD_src;
+wire [2*width+5:0] LOD_src_abs = LOD_src[2*width+6]? -LOD_src : LOD_src;
+wire [$clog2(2*width+7) - 1 : 0] LOD_pos;
+wire [$clog2(2*width+7) - 1 : 0] LOD_pos_new;
+reg [$clog2(2*width+7) - 1 : 0] LOD_pos_buffer;
+wire LOD_valid;
+LOD #(.W(2*width+7)) L_mul (.in(LOD_src_abs), .pos(LOD_pos), .valid(LOD_valid));
+assign LOD_pos_new = (LOD_pos > LOD_pos_buffer && LOD_valid)? LOD_pos : LOD_pos_buffer;
+
+always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
+        LOD_counter <= 0;
+        LOD_src <= 0;
+    end else begin
+        LOD_counter <= LOD_counter + 1;
+        if(col_reg == 6 && row_reg == 5) begin 
+            case(LOD_counter) 
+                3'b0: LOD_src <= IX2;
+                3'b1: LOD_src <= Iy2;
+                3'b2: LOD_src <= IXIy;
+                3'b3: LOD_src <= IXIt;
+                3'b4: LOD_src <= IyIt;
+            endcase
+        end
+    end    
+end
+
+
+always @(posedge clk or negedge rst_n) begin 
+    if(~rst_n) begin
+        LOD_pos_buffer <= 0;
+    end
+    else begin 
+        if(~in_en) begin 
+            LOD_pos_buffer <= LOD_pos_new;
+        end
+    end
+end
+
+wire sum_shift = (LOD_pos_buffer > 16);
+wire signed[2*width-1:0] Ix2_shift = (sum_shift)? (Ix2 >>> (LOD_pos_buffer - 16)) : Ix2;
+wire signed[2*width-1:0] Iy2_shift = (sum_shift)? (Iy2 >>> (LOD_pos_buffer - 16)) : Iy2;
+wire signed[2*width-1:0] IxIy_shift = (sum_shift)? (IxIy >>> (LOD_pos_buffer - 16)) : IxIy;
+wire signed[2*width-1:0] IxIt_shift = (sum_shift)? (IxIt >>> (LOD_pos_buffer - 16)) : IxIt;
+wire signed[2*width-1:0] IyIt_shift = (sum_shift)? (IyIt >>> (LOD_pos_buffer - 16)) : IyIt;
+wire signed [4*width-1:0] Ux = -(Iy2_shift * IxIt_shift) + (IxIy_shift * IyIt_shift); //-(197316*36516)+(-156086*-15534) =-4780551168
+wire signed [4*width-1:0] Uy = -(Ix2_shift * IyIt_shift)+ (IxIy_shift * IxIt_shift);//-(341126*-15534) + (-156086*36516)
 // wire signed [4*width+13:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
 assign Vx = Ux;
 assign Vy = Uy;
-// reciprocal();
+
 
 
 
@@ -129,15 +171,19 @@ always @(posedge clk or negedge rst_n) begin
         row_reg <= 0;
         col_reg <= 0;
     end else begin
-        if (col_reg == 6) begin // 0 到 6 代表 7 個數
-        col_reg <= 0;
-            if (row_reg == 6) begin
-                row_reg <= 0;
-            end else begin
-                row_reg <= row_reg + 1;
+        if(in_en) begin
+            if (col_reg == 6) begin // 0 到 6 代表 7 個數
+                col_reg <= 0;
+                // if (row_reg == 6) begin
+                    // row_reg <= 0;
+                // end else begin
+                    // row_reg <= row_reg + 1;
+                if(row_reg != 6) row_reg <= row_reg + 1;
+                end
+            end 
+            else if(~(col_reg == 5 && row_reg == 6)) begin
+                col_reg <= col_reg + 1;
             end
-        end else begin
-            col_reg <= col_reg + 1;
         end
     end    
 end
