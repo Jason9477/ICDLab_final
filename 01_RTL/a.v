@@ -162,7 +162,7 @@ endmodule
 
 // Leading One Detector
 module LOD #(
-    parameter W = 11
+    parameter W = 45
 )(
     input [W - 1 : 0] in,
     output [$clog2(W) - 1 : 0] pos,
