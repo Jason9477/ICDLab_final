@@ -56,11 +56,11 @@ wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
 reg [2 : 0] LOD_counter;
 reg signed [2*width+6:0] LOD_src;
 wire [2*width+5:0] LOD_src_abs = LOD_src[2*width+6]? -LOD_src : LOD_src;
-wire [$clog2(2*width+7) - 1 : 0] LOD_pos;
-wire [$clog2(2*width+7) - 1 : 0] LOD_pos_new;
-reg [$clog2(2*width+7) - 1 : 0] LOD_pos_buffer;
+wire [$clog2(2*width+6) - 1 : 0] LOD_pos;
+wire [$clog2(2*width+6) - 1 : 0] LOD_pos_new;
+reg [$clog2(2*width+6) - 1 : 0] LOD_pos_buffer;
 wire LOD_valid;
-LOD #(.W(2*width+7)) L_mul (.in(LOD_src_abs), .pos(LOD_pos), .valid(LOD_valid));
+LOD #(.W(2*width+6)) L_mul (.in(LOD_src_abs), .pos(LOD_pos), .valid(LOD_valid));
 assign LOD_pos_new = (LOD_pos > LOD_pos_buffer && LOD_valid)? LOD_pos : LOD_pos_buffer;
 
 always @(posedge clk or negedge rst_n) begin
@@ -71,11 +71,11 @@ always @(posedge clk or negedge rst_n) begin
         LOD_counter <= LOD_counter + 1;
         if(col_reg == 6 && row_reg == 5) begin 
             case(LOD_counter) 
-                3'b0: LOD_src <= IX2;
-                3'b1: LOD_src <= Iy2;
-                3'b2: LOD_src <= IXIy;
-                3'b3: LOD_src <= IXIt;
-                3'b4: LOD_src <= IyIt;
+                3'd0: LOD_src <= Ix2;
+                3'd1: LOD_src <= Iy2;
+                3'd2: LOD_src <= IxIy;
+                3'd3: LOD_src <= IxIt;
+                3'd4: LOD_src <= IyIt;
             endcase
         end
     end    
@@ -99,9 +99,9 @@ wire signed[2*width-1:0] Iy2_shift = (sum_shift)? (Iy2 >>> (LOD_pos_buffer - 16)
 wire signed[2*width-1:0] IxIy_shift = (sum_shift)? (IxIy >>> (LOD_pos_buffer - 16)) : IxIy;
 wire signed[2*width-1:0] IxIt_shift = (sum_shift)? (IxIt >>> (LOD_pos_buffer - 16)) : IxIt;
 wire signed[2*width-1:0] IyIt_shift = (sum_shift)? (IyIt >>> (LOD_pos_buffer - 16)) : IyIt;
-wire signed [4*width-1:0] Ux = -(Iy2_shift * IxIt_shift) + (IxIy_shift * IyIt_shift); //-(197316*36516)+(-156086*-15534) =-4780551168
-wire signed [4*width-1:0] Uy = -(Ix2_shift * IyIt_shift)+ (IxIy_shift * IxIt_shift);//-(341126*-15534) + (-156086*36516)
-// wire signed [4*width+13:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
+wire signed [4*width:0] Ux = -(Iy2_shift * IxIt_shift) + (IxIy_shift * IyIt_shift); //-(197316*36516)+(-156086*-15534) =-4780551168
+wire signed [4*width:0] Uy = -(Ix2_shift * IyIt_shift)+ (IxIy_shift * IxIt_shift);//-(341126*-15534) + (-156086*36516)
+wire signed [4*width:0] det = (Ix2_shift * Iy2_shift) - (IxIy_shift * IxIy_shift);
 assign Vx = Ux;
 assign Vy = Uy;
 
@@ -179,7 +179,6 @@ always @(posedge clk or negedge rst_n) begin
                 // end else begin
                     // row_reg <= row_reg + 1;
                 if(row_reg != 6) row_reg <= row_reg + 1;
-                end
             end 
             else if(~(col_reg == 5 && row_reg == 6)) begin
                 col_reg <= col_reg + 1;

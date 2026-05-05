@@ -52,14 +52,13 @@ wire signed [2*width+1:0] IxIt_now = Ix_now*It[4];
 wire signed [2*width+1:0] IyIt_now = Iy_now*It[0];
 wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
 
-wire signed[4*width+13:0] Ix2_ext = Ix2;
-wire signed[4*width+13:0] Iy2_ext = Iy2;
-wire signed [4*width+13:0] Ux = -(Iy2_ext * IxIt) + (IxIy * IyIt); //-(197316*36516)+(-156086*-15534) =-4780551168
-wire signed [4*width+13:0] Uy = -(Ix2_ext * IyIt)+ (IxIy * IxIt);//-(341126*-15534) + (-156086*36516)
-// wire signed [4*width+13:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
+wire signed[4*width+14:0] Ix2_ext = Ix2;
+wire signed[4*width+14:0] Iy2_ext = Iy2;
+wire signed [4*width+14:0] Ux = -(Iy2_ext * IxIt) + (IxIy * IyIt); //-(197316*36516)+(-156086*-15534) =-4780551168
+wire signed [4*width+14:0] Uy = -(Ix2_ext * IyIt)+ (IxIy * IxIt);//-(341126*-15534) + (-156086*36516)
+wire signed [4*width+14:0] det = (Ix2_ext*Iy2) - (IxIy * IxIy);
 assign Vx = Ux;
 assign Vy = Uy;
-// reciprocal();
 
 
 
