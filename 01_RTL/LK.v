@@ -55,6 +55,7 @@ end
 wire signed [2*width+1:0] IxIt_now = Ix_now*It[4];
 wire signed [2*width+1:0] IyIt_now = Iy_now*It[0];
 wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
+
 wire signed[4*width+13:0] Ix2_ext = Ix2;
 wire signed[4*width+13:0] Iy2_ext = Iy2;
 wire signed [4*width+13:0] Ux = -(Iy2_ext * IxIt) + (IxIy * IyIt); //-(197316*36516)+(-156086*-15534) =-4780551168
