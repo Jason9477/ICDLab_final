@@ -188,10 +188,8 @@ always @(posedge clk or negedge rst_n) begin
     end else begin
         if(in_en) begin
             if (col_reg == 6) begin // 0 到 6 代表 7 個數
-                if(row_reg!=6) begin
-                    col_reg <= 0;
-                    row_reg <= row_reg + 1;
-                end
+                col_reg <= 0;
+                row_reg <= row_reg + 1;
             end 
             else  begin
                 col_reg <= col_reg + 1;
