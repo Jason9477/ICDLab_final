@@ -76,15 +76,19 @@ always @(posedge clk or negedge rst_n) begin
     end    
 end
 always @(posedge clk or negedge rst_n) begin 
-    if(~rst_n || (col_reg == 5 && row_reg == 6)) begin
+    if (~rst_n) begin
         mul_pos_buffer <= 0;
     end
     else begin 
-
+        if (col_reg == 5 && row_reg == 6) begin
+            mul_pos_buffer <= 0;
+        end
+        else begin
             mul_pos_buffer <= mul_pos_new;
-
+        end
     end
 end
+
 wire sum_shift = (mul_pos_buffer > 14);
 wire [3:0] shift_amount = (sum_shift)? (mul_pos_buffer - 14) : 0;
 wire signed[2*width-1:0] Ix2_shift = (Ix2 >>> shift_amount);
@@ -111,12 +115,12 @@ wire signed [11 : 0] result_y = (det[4*width])? -$signed(shifted_y[11 : 0]) : $s
 wire corner;
 Harris #(.width(width)) H1(.Ix2(Ix2_shift),.Iy2(Iy2_shift),.det(det),.corner(corner));
 always @(*) begin 
-    if(~div_valid || $signed(shifted_x[4*width+20:4]) > $signed(4'b0101) || $signed(shifted_x[4*width+20:4]) < $signed(4'b1011)) begin 
+    if(~div_valid || $signed(shifted_x[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_x[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
         Vx = 8'b0;
     end
     else Vx = result_x;
 
-    if(~div_valid || $signed(shifted_y[4*width+20:4]) > $signed(4'b0101) || $signed(shifted_y[4*width+20:4]) < $signed(4'b1011)) begin 
+    if(~div_valid || $signed(shifted_y[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_y[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
         Vy = 8'b0;
     end
     else Vy = result_y;
@@ -160,24 +164,36 @@ end
 
 // summaiton
 always @(posedge clk or negedge rst_n) begin
-    if(~rst_n || (col_reg == 6 && row_reg == 0)) begin
-        Iy2 <= 0;
-        Ix2 <= 0;
+    if (~rst_n) begin
+        Iy2  <= 0;
+        Ix2  <= 0;
         IxIt <= 0;
         IyIt <= 0;
         IxIy <= 0;
-    end else begin
-    if(Iy_en) begin
-            Iy2 <= Iy2 + Iy_now2;
-            IxIy <= IxIy + IxIy_now;
-            IyIt <= IyIt + IyIt_now;
-        end
-    if(Ix_en) begin
-            Ix2 <= Ix2 + Ix_now2;
-            IxIt<= IxIt + IxIt_now;
+    end 
+    else begin
+        if (col_reg == 6 && row_reg == 0) begin
+            Iy2  <= 0;
+            Ix2  <= 0;
+            IxIt <= 0;
+            IyIt <= 0;
+            IxIy <= 0;
+        end 
+        else begin
+            // 正常的累加邏輯
+            if (Iy_en) begin
+                Iy2  <= Iy2  + Iy_now2;
+                IxIy <= IxIy + IxIy_now;
+                IyIt <= IyIt + IyIt_now;
+            end
+            if (Ix_en) begin
+                Ix2  <= Ix2  + Ix_now2;
+                IxIt <= IxIt + IxIt_now;
+            end
         end
     end
 end
+
 
 // input matrix index
 always @(posedge clk or negedge rst_n) begin
