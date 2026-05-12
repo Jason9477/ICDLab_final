@@ -16,10 +16,10 @@ def main():
     # ==========================================
     # 1. 生成 7x7 的隨機輸入矩陣 (img1, img2)
     # ==========================================
-    np.random.seed(42) # 鎖定亂數種子，確保每次產生一樣的測資
+    np.random.seed(0) # 鎖定亂數種子，確保每次產生一樣的測資
     
-    img1 = np.random.randint(0, 256, (7, 7)).astype(np.float32)
-    img2 = np.random.randint(0, 256, (7, 7)).astype(np.float32)
+    img1 = np.random.randint(0, 256, (7, 7)).astype(np.float64)
+    img2 = np.random.randint(0, 256, (7, 7)).astype(np.float64)
 
     # 輸出成單一 txt 檔案
     generate_combined_hex_file("input_combined.txt", img1, img2)
@@ -49,6 +49,42 @@ def main():
     print(f"sum_IxIt : {sum_IxIt:10.0f}")
     print(f"sum_IyIt : {sum_IyIt:10.0f}")
     print("===============================================\n")
+
+
+    # ==========================================
+    # 4. 求解光流向量 (未除以 detA 版本)
+    # ==========================================
+    
+    # 定義克拉瑪公式所需的分子矩陣內容
+    # b1 = -sum_IxIt, b2 = -sum_IyIt
+    b1 = -sum_IxIt
+    b2 = -sum_IyIt
+    
+    # det(A) = (sum_Ix2 * sum_Iy2) - (sum_IxIy * sum_IxIy)
+    detA = (sum_Ix2 * sum_Iy2) - (sum_IxIy ** 2)
+    
+    # 未除以 detA 的 vx (即 detAx)
+    # detAx = b1 * sum_Iy2 - sum_IxIy * b2
+    vx_num = (b1 * sum_Iy2) - (sum_IxIy * b2)
+    
+    # 未除以 detA 的 vy (即 detAy)
+    # detAy = sum_Ix2 * b2 - b1 * sum_IxIy
+    vy_num = (sum_Ix2 * b2) - (b1 * sum_IxIy)
+
+    print("============== 最終光流計算結果 ==============")
+    print(f"det(A) : {detA}")
+    print(f"vx_num : {vx_num:17.0f} (未除以 detA)")
+    print(f"vy_num : {vy_num:17.0f} (未除以 detA)")
+    print("-" * 47)
+    print(type(sum_Ix2))
+    # 驗證原始結果
+    if abs(detA) > 1e-9:
+        print(f"驗證 vx (vx_num/detA) : {vx_num/detA:.6f}")
+        print(f"驗證 vy (vy_num/detA) : {vy_num/detA:.6f}")
+    else:
+        print("detA 太小，無法計算除法")
+    print("===============================================")
+
 
     # ==========================================
     # 4. 求解光流向量 vx, vy
