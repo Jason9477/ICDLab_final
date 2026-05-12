@@ -191,8 +191,8 @@ always @(posedge clk or negedge rst_n) begin
 
         if (col_reg == 6) begin // 0 到 6 代表 7 個數
             if(row_reg == 6) begin
-                col_reg <= 0;
-                row_reg <= 0;
+                col_reg <= 6;
+                row_reg <= 6;
             end
             else begin
                 col_reg <= 0;
@@ -259,7 +259,7 @@ module Harris#(parameter  width = 8)(
     wire signed [4*width+1:0] R;
     assign R = det - (trace_sq >>> 4);
 
-    parameter signed THRESHOLD = 32'd10000;
+    parameter signed THRESHOLD = 32'd1000000000;
 
     assign corner = (R > THRESHOLD);
 
