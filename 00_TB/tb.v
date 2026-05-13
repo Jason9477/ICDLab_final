@@ -19,10 +19,10 @@ module tb;
         .in_en(in_en)
     );
     initial begin
-        $dumpfile("LK.vcd");
-        $dumpvars();
-        // $fsdbDumpfile("LK.fsdb");
-        // $fsdbDumpvars("+mda", tb, uut);
+        //$dumpfile("LK.vcd");
+        //$dumpvars();
+         $fsdbDumpfile("LK.fsdb");
+         $fsdbDumpvars("+mda", tb, uut);
 
     end
     initial begin
