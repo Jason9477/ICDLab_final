@@ -52,40 +52,46 @@ wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
 // matrix multiplication
 reg [2 : 0] mul_counter;
 reg signed [2*width+6:0] mul_src;
-wire [2*width+6:0] mul_src_abs = mul_src[2*width+6]? -mul_src : mul_src;
-wire [$clog2(2*width+7) - 1 : 0] mul_pos;
+wire [2*width+6:0] mul_abs [0:4];
+
+assign mul_abs[0] = Ix2   [2*width+6] ? -Ix2   : Ix2;
+assign mul_abs[1] = Iy2   [2*width+6] ? -Iy2   : Iy2;
+assign mul_abs[2] = IxIy  [2*width+6] ? -IxIy  : IxIy;
+assign mul_abs[3] = IxIt  [2*width+6] ? -IxIt  : IxIt;
+assign mul_abs[4] = IyIt  [2*width+6] ? -IyIt  : IyIt;
+wire [$clog2(2*width+7) - 1 : 0] mul_pos[0:4];
+wire [$clog2(2*width+7) - 1 : 0] pos1 = mul_pos[0];
+wire [$clog2(2*width+7) - 1 : 0] pos2 = mul_pos[1];
+wire [$clog2(2*width+7) - 1 : 0] pos3 = mul_pos[2];
+wire [$clog2(2*width+7) - 1 : 0] pos4 = mul_pos[3];
+wire [$clog2(2*width+7) - 1 : 0] pos5 = mul_pos[4];
 wire [$clog2(2*width+7) - 1 : 0] mul_pos_new;
 reg [$clog2(2*width+7) - 1 : 0] mul_pos_buffer;
 wire mul_valid;
-LOD #(.W(2*width+7)) L_mul (.in(mul_src_abs), .pos(mul_pos), .valid(mul_valid));
-assign mul_pos_new = (mul_pos > mul_pos_buffer && mul_valid)? mul_pos : mul_pos_buffer;
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        mul_counter <= 0;
-        mul_src <= 0;
-    end else begin
-        mul_counter <= mul_counter + 1;
-            case(col_reg) 
-                3'd5: mul_src <= Ix2;
-                3'd6: mul_src <= Iy2;
-                3'd0: mul_src <= IxIy;
-                3'd1: mul_src <= IxIt;
-                3'd2: mul_src <= IyIt;
-            endcase
-        
-    end    
+LOD #(.W(2*width+7)) L_mul0 (.in(mul_abs[0]), .pos(mul_pos[0]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul1 (.in(mul_abs[1]), .pos(mul_pos[1]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul2 (.in(mul_abs[2]), .pos(mul_pos[2]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul3 (.in(mul_abs[3]), .pos(mul_pos[3]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul4 (.in(mul_abs[4]), .pos(mul_pos[4]), .valid(mul_valid));
+reg [$clog2(2*width+7)-1:0] max_val;
+integer i;
+always @(*) begin
+    max_val = mul_pos[0];
+    
+    for(i=1;i<5;i=i+1) begin
+        if(mul_pos[i] > max_val)
+            max_val = mul_pos[i];
+    end
 end
 always @(posedge clk or negedge rst_n) begin 
     if (~rst_n) begin
         mul_pos_buffer <= 0;
     end
     else begin 
-        if (col_reg == 5 && row_reg == 6) begin
-            mul_pos_buffer <= 0;
+        if (col_reg == 6 && row_reg == 6) begin
+            mul_pos_buffer <= max_val;
         end
-        else begin
-            mul_pos_buffer <= mul_pos_new;
-        end
+
     end
 end
 
