@@ -122,18 +122,30 @@ wire signed [11 : 0] result_y = (det[4*width])? -$signed(shifted_y[11 : 0]) : $s
 // corner detection
 wire corner;
 Harris #(.width(width)) H1(.Ix2(Ix2_shift),.Iy2(Iy2_shift),.det(det),.corner(corner));
+reg [11 : 0] Vx_out, Vy_out;
 always @(*) begin 
     if(~div_valid || $signed(shifted_x[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_x[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
-        Vx = 8'b0;
+        Vx_out = 8'b0;
     end
-    else Vx = result_x;
+    else Vx_out = result_x;
 
     if(~div_valid || $signed(shifted_y[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_y[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
-        Vy = 8'b0;
+        Vy_out = 8'b0;
     end
-    else Vy = result_y;
+    else Vy_out = result_y;
 end
 
+// output flip-flopped
+always @(posedge clk or negedge rst_n) begin
+    if(~rst_n) begin
+        Vx <= 0;
+        Vy <= 0;
+    end
+    else begin
+        Vx <= Vx_out;
+        Vy <= Vy_out;
+    end
+end
 
 // shift registers
 integer j;
