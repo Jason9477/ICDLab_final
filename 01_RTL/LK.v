@@ -7,8 +7,8 @@ module LK #(parameter width = 8)(
     input clk,
     input rst_n,
     input in_en,
-    input [width-1:0] a,
-    input [width-1:0] b,
+    input [7:0] a,
+    input [7:0] b,
     output valid,
     output reg [11:0] Vx,
     output reg [11:0] Vy
@@ -52,40 +52,46 @@ wire signed [2*width+1:0] IxIy_now = Iy_now*Ix[0];
 // matrix multiplication
 reg [2 : 0] mul_counter;
 reg signed [2*width+6:0] mul_src;
-wire [2*width+6:0] mul_src_abs = mul_src[2*width+6]? -mul_src : mul_src;
-wire [$clog2(2*width+7) - 1 : 0] mul_pos;
+wire [2*width+6:0] mul_abs [0:4];
+
+assign mul_abs[0] = Ix2   [2*width+6] ? -Ix2   : Ix2;
+assign mul_abs[1] = Iy2   [2*width+6] ? -Iy2   : Iy2;
+assign mul_abs[2] = IxIy  [2*width+6] ? -IxIy  : IxIy;
+assign mul_abs[3] = IxIt  [2*width+6] ? -IxIt  : IxIt;
+assign mul_abs[4] = IyIt  [2*width+6] ? -IyIt  : IyIt;
+wire [$clog2(2*width+7) - 1 : 0] mul_pos[0:4];
+wire [$clog2(2*width+7) - 1 : 0] pos1 = mul_pos[0];
+wire [$clog2(2*width+7) - 1 : 0] pos2 = mul_pos[1];
+wire [$clog2(2*width+7) - 1 : 0] pos3 = mul_pos[2];
+wire [$clog2(2*width+7) - 1 : 0] pos4 = mul_pos[3];
+wire [$clog2(2*width+7) - 1 : 0] pos5 = mul_pos[4];
 wire [$clog2(2*width+7) - 1 : 0] mul_pos_new;
 reg [$clog2(2*width+7) - 1 : 0] mul_pos_buffer;
 wire mul_valid;
-LOD #(.W(2*width+7)) L_mul (.in(mul_src_abs), .pos(mul_pos), .valid(mul_valid));
-assign mul_pos_new = (mul_pos > mul_pos_buffer && mul_valid)? mul_pos : mul_pos_buffer;
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        mul_counter <= 0;
-        mul_src <= 0;
-    end else begin
-        mul_counter <= mul_counter + 1;
-            case(col_reg) 
-                3'd5: mul_src <= Ix2;
-                3'd6: mul_src <= Iy2;
-                3'd0: mul_src <= IxIy;
-                3'd1: mul_src <= IxIt;
-                3'd2: mul_src <= IyIt;
-            endcase
-        
-    end    
+LOD #(.W(2*width+7)) L_mul0 (.in(mul_abs[0]), .pos(mul_pos[0]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul1 (.in(mul_abs[1]), .pos(mul_pos[1]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul2 (.in(mul_abs[2]), .pos(mul_pos[2]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul3 (.in(mul_abs[3]), .pos(mul_pos[3]), .valid(mul_valid));
+LOD #(.W(2*width+7)) L_mul4 (.in(mul_abs[4]), .pos(mul_pos[4]), .valid(mul_valid));
+reg [$clog2(2*width+7)-1:0] max_val;
+integer i;
+always @(*) begin
+    max_val = mul_pos[0];
+    
+    for(i=1;i<5;i=i+1) begin
+        if(mul_pos[i] > max_val)
+            max_val = mul_pos[i];
+    end
 end
 always @(posedge clk or negedge rst_n) begin 
     if (~rst_n) begin
         mul_pos_buffer <= 0;
     end
     else begin 
-        if (col_reg == 5 && row_reg == 6) begin
-            mul_pos_buffer <= 0;
+        if (col_reg == 6 && row_reg == 6) begin
+            mul_pos_buffer <= max_val;
         end
-        else begin
-            mul_pos_buffer <= mul_pos_new;
-        end
+
     end
 end
 
@@ -96,10 +102,19 @@ wire signed[2*width-1:0] Iy2_shift =  (Iy2 >>> shift_amount) ;
 wire signed[2*width-1:0] IxIy_shift = (IxIy >>> shift_amount) ;
 wire signed[2*width-1:0] IxIt_shift = (IxIt >>> shift_amount) ;
 wire signed[2*width-1:0] IyIt_shift = (IyIt >>> shift_amount) ;
-wire signed [4*width:0] Ux = -(Iy2_shift * IxIt_shift) + (IxIy_shift * IyIt_shift); //-(197316*36516)+(-156086*-15534) =-4780551168
-wire signed [4*width:0] Uy = -(Ix2_shift * IyIt_shift)+ (IxIy_shift * IxIt_shift);//-(341126*-15534) + (-156086*36516)
-wire signed [4*width:0] det = (Ix2_shift * Iy2_shift) - (IxIy_shift * IxIy_shift);
-
+// wire signed [4*width:0] Ux = -(Iy2_shift * IxIt_shift) + (IxIy_shift * IyIt_shift); //-(197316*36516)+(-156086*-15534) =-4780551168
+// wire signed [4*width:0] Uy = -(Ix2_shift * IyIt_shift)+ (IxIy_shift * IxIt_shift);//-(341126*-15534) + (-156086*36516)
+// wire signed [4*width:0] det = (Ix2_shift * Iy2_shift) - (IxIy_shift * IxIy_shift);
+reg signed [4*width-1:0] Iy2_IxIt_reg, Ix2_IyIt_reg, Ix2_Iy2_reg,IxIy_IyIt_reg, IxIy_IxIt_reg,IxIy2_reg;
+wire signed [4*width-1:0] Iy2_IxIt = Iy2_shift * IxIt_shift;
+wire signed [4*width-1:0] Ix2_IyIt = Ix2_shift * IyIt_shift;
+wire signed [4*width-1:0] Ix2_Iy2 = Ix2_shift * Iy2_shift;
+wire signed [4*width-1:0] IxIy_IyIt = IxIy_shift * IyIt_shift;
+wire signed [4*width-1:0] IxIy_IxIt = IxIy_shift * IxIt_shift;
+wire signed [4*width-1:0] IxIy2 = IxIy_shift * IxIy_shift;
+wire signed [4*width:0] Ux = -Iy2_IxIt_reg + IxIy_IyIt_reg; //-(197316*36516)+(-156086*-15534) =-4780551168
+wire signed [4*width:0] Uy = -Ix2_IyIt_reg + IxIy_IxIt_reg;//-(341126*-15534) + (-156086*36516)
+wire signed [4*width:0] det = Ix2_Iy2_reg - IxIy2_reg;//(Ix2_shift * Iy2_shift) - (IxIy_shift * IxIy_shift);
 
 // division
 wire [4*width:0] det_abs = det[4*width]? (-det) : det;
@@ -112,18 +127,19 @@ wire signed [4*width+11:0] shifted_x = Ux_pad >>> div_pos;
 wire signed [4*width+11:0] shifted_y = Uy_pad >>> div_pos;
 wire signed [11 : 0] result_x = (det[4*width])? -$signed(shifted_x[11 : 0]) : $signed(shifted_x[11 : 0]);
 wire signed [11 : 0] result_y = (det[4*width])? -$signed(shifted_y[11 : 0]) : $signed(shifted_y[11 : 0]);
+reg signed  [11:0] vx_reg, vy_reg;
 wire corner;
 Harris #(.width(width)) H1(.Ix2(Ix2_shift),.Iy2(Iy2_shift),.det(det),.corner(corner));
 always @(*) begin 
     if(~div_valid || $signed(shifted_x[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_x[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
-        Vx = 8'b0;
+        vx_reg = 8'b0;
     end
-    else Vx = result_x;
+    else vx_reg = result_x;
 
     if(~div_valid || $signed(shifted_y[4*width+11:4]) > $signed(4'b0101) || $signed(shifted_y[4*width+11:4]) < $signed(4'b1011) && ~corner) begin 
-        Vy = 8'b0;
+        vy_reg = 8'b0;
     end
-    else Vy = result_y;
+    else vy_reg = result_y;
 end
 
 
@@ -170,8 +186,24 @@ always @(posedge clk or negedge rst_n) begin
         IxIt <= 0;
         IyIt <= 0;
         IxIy <= 0;
+        Vx <= 0;
+        Vy <= 0;
+        Ix2_IyIt_reg <= 0;
+        Iy2_IxIt_reg <= 0;
+        Ix2_Iy2_reg <= 0;
+        IxIy_IyIt_reg <= 0;
+        IxIy_IxIt_reg <= 0;
+        IxIy2_reg <= 0;
     end 
     else begin
+        Vx<= vx_reg;
+        Vy<= vy_reg;
+        Ix2_IyIt_reg <= Ix2_IyIt;
+        Iy2_IxIt_reg <= Iy2_IxIt;
+        Ix2_Iy2_reg <= Ix2_Iy2;
+        IxIy_IyIt_reg <= IxIy_IyIt;
+        IxIy_IxIt_reg <= IxIy_IxIt;
+        IxIy2_reg <= IxIy * IxIy;
         if (col_reg == 6 && row_reg == 0) begin
             Iy2  <= 0;
             Ix2  <= 0;
@@ -180,6 +212,7 @@ always @(posedge clk or negedge rst_n) begin
             IxIy <= 0;
         end 
         else begin
+
             // 正常的累加邏輯
             if (Iy_en) begin
                 Iy2  <= Iy2  + Iy_now2;
@@ -277,4 +310,3 @@ module Harris#(parameter  width = 8)(
     assign corner = (R > THRESHOLD);
 
 endmodule
-    
