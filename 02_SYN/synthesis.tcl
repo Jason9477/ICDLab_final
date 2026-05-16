@@ -39,7 +39,8 @@ check_design
 # remove_attribute [find -hierarchy design {"*"}] dont_touch
 
 # Map and Optimize the Design
-compile -map_effort medium
+compile_ultra -no_autoungroup -retime -timing_high_effort_script -timing
+compile_ultra -incremental
 
 # Analyze and debug the design
 report_area > area_LK.out
