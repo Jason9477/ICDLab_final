@@ -3,7 +3,7 @@ clc; clear; close all;
 % =========================
 % 1. 路徑與參數設定
 % =========================
-input_dir  = 'test/compressed/basketball';
+input_dir  = 'test/compressed/Minicooper';
 output_dir = 'output_flow_png/';
 csv_dir    = 'output_csv_data/';
 if ~exist(output_dir, 'dir'), mkdir(output_dir); end
@@ -18,6 +18,7 @@ core_size   = 5;
 stride      = 5;
 mul         = 10;
 threshold   = 1e6;
+k=0.06;
 
 % =========================
 % ★ 模式開關：'hw' 或 'sw'
@@ -128,15 +129,13 @@ for f_idx = start_frame : (end_frame - 1)
         close(fig);
 
     % =========================
-    % hw 模式：每個 pixel 計算，累加到 stride block，最後 average 再 threshold
+    % hw 模式：每個 pixel 先過 Harris + flow threshold，合格才累加，最後 average
     % =========================
     else
 
         Vx_sum   = zeros(n_gy, n_gx);
         Vy_sum   = zeros(n_gy, n_gx);
-        R_sum    = zeros(n_gy, n_gx);
-        Vx_count = zeros(n_gy, n_gx);  % detA 合法的 pixel 數
-        R_count  = zeros(n_gy, n_gx);  % 所有 pixel 數（for Harris avg）
+        Vx_count = zeros(n_gy, n_gx);
 
         for i = (1+w):(H-w)
             [~, gi] = min(abs(ys_range - i));
@@ -171,70 +170,67 @@ for f_idx = start_frame : (end_frame - 1)
                 IxIt_s = floor(raw_IxIt / (2^shift_amt));
                 IyIt_s = floor(raw_IyIt / (2^shift_amt));
 
-                % Harris（計算但不擋，只累加）
+                % ── 關卡 1：Harris ──
                 detH   = Ix2_s * Iy2_s - IxIy_s^2;
                 traceH = Ix2_s + Iy2_s;
-                R      = double(detH) - double((int64(traceH)*int64(traceH)) * 0.06125);
+                R      = double(detH) - double((int64(traceH)*int64(traceH)) * k);
                 detA_s = detH;
 
-                R_sum(gi, gj)   = R_sum(gi, gj)   + R;
-                R_count(gi, gj) = R_count(gi, gj) + 1;
+                if R <= threshold
+                    continue;   % Harris 不過 → 捨棄
+                end
 
-                % LK 分子
+                % ── 關卡 2：除法合法性 ──
+                if detA_s <= 0 || raw_detA <= 0
+                    continue;
+                end
+
                 Ux_s = -(Iy2_s * IxIt_s) + (IxIy_s * IyIt_s);
                 Uy_s = -(Ix2_s * IyIt_s) + (IxIy_s * IxIt_s);
 
-                % 只保護除法合法性，不做 Harris/flow thresholding
-                if detA_s > 0 && raw_detA > 0
-                    k_div       = floor(log2(double(detA_s)));
-                    final_shift = k_div - 8;
-                    if final_shift >= 0
-                        vx_f = floor(Ux_s / (2^final_shift));
-                        vy_f = floor(Uy_s / (2^final_shift));
-                    else
-                        vx_f = floor(Ux_s * (2^abs(final_shift)));
-                        vy_f = floor(Uy_s * (2^abs(final_shift)));
-                    end
-                    vx_f = max(min(vx_f, 2047), -2048);
-                    vy_f = max(min(vy_f, 2047), -2048);
-
-                    vx_final = vx_f / 256;
-                    vy_final = vy_f / 256;
-
-                    % 無條件累加
-                    Vx_sum(gi, gj)   = Vx_sum(gi, gj)   + vx_final;
-                    Vy_sum(gi, gj)   = Vy_sum(gi, gj)   + vy_final;
-                    Vx_count(gi, gj) = Vx_count(gi, gj) + 1;
+                k_div       = floor(log2(double(detA_s)));
+                final_shift = k_div - 8;
+                if final_shift >= 0
+                    vx_f = floor(Ux_s / (2^final_shift));
+                    vy_f = floor(Uy_s / (2^final_shift));
+                else
+                    vx_f = floor(Ux_s * (2^abs(final_shift)));
+                    vy_f = floor(Uy_s * (2^abs(final_shift)));
                 end
+                vx_f = max(min(vx_f, 2047), -2048);
+                vy_f = max(min(vy_f, 2047), -2048);
+
+                vx_final = vx_f / 256;
+                vy_final = vy_f / 256;
+
+                % ── 關卡 3：flow magnitude ──
+                if abs(vx_final) >= 3 || abs(vy_final) >= 3
+                    continue;
+                end
+
+                % 三關全過才累加
+                Vx_sum(gi, gj)   = Vx_sum(gi, gj)   + vx_final;
+                Vy_sum(gi, gj)   = Vy_sum(gi, gj)   + vy_final;
+                Vx_count(gi, gj) = Vx_count(gi, gj) + 1;
             end
         end
 
-        % --- 計算平均 ---
-        valid = Vx_count > 0;
+        % --- 計算平均（只對有效累加的 block）---
+        valid  = Vx_count > 0;
         Vx_avg = zeros(n_gy, n_gx);
         Vy_avg = zeros(n_gy, n_gx);
-        R_avg  = zeros(n_gy, n_gx);
-
         Vx_avg(valid) = Vx_sum(valid) ./ Vx_count(valid);
         Vy_avg(valid) = Vy_sum(valid) ./ Vx_count(valid);
-        R_avg(R_count > 0) = R_sum(R_count > 0) ./ R_count(R_count > 0);
 
-        % --- 平均後才做所有 thresholding ---
-        pass_harris = R_avg > threshold;
-        pass_flow   = abs(Vx_avg) < 3 && abs(Vy_avg) < 3;
-        pass        = valid & pass_harris & pass_flow;
-
-        Vx_out = zeros(n_gy, n_gx);
-        Vy_out = zeros(n_gy, n_gx);
-        Vx_out(pass) = Vx_avg(pass) * mul;
-        Vy_out(pass) = Vy_avg(pass) * mul;
+        Vx_out = Vx_avg * mul;
+        Vy_out = Vy_avg * mul;
 
         % 繪圖
         [X_grid, Y_grid] = meshgrid(xs_range, ys_range);
         fig = figure('Visible', 'off');
         imshow(im1, []); hold on;
         quiver(X_grid, Y_grid, Vx_out, Vy_out, 0, 'r', 'LineWidth', 0.8);
-        title(sprintf('Optical Flow Frame %02d [%s - dense avg]', f_idx, MODE));
+        title(sprintf('Optical Flow Frame %02d [%s - pre-threshold avg]', f_idx, MODE));
         save_path = fullfile(output_dir, sprintf('%s_flow_%02d.png', MODE, f_idx));
         print(fig, save_path, '-dpng', '-r150');
         close(fig);
