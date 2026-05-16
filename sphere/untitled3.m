@@ -16,8 +16,8 @@ window_size = 7;
 w           = floor(window_size / 2);  % w = 3
 core_size   = 5;
 stride      = 5;
-mul         = 10 ;
-threshold = 1e6;
+mul         = 9 ;
+threshold = 1e6 ;
 % =========================
 % ★ 模式開關：'hw' 或 'sw'
 % =========================
@@ -100,7 +100,7 @@ for f_idx = start_frame : (end_frame - 1)
                     vx_actual = raw_Ux / raw_detA;
                     vy_actual = raw_Uy / raw_detA;
 
-                    if abs(vx_actual) < 3 || abs(vy_actual) < 3
+                    if abs(vx_actual) < 5 && abs(vy_actual) < 5
                         Vx(i,j) = vx_actual * mul;
                         Vy(i,j) = vy_actual * mul;
                     else
@@ -162,7 +162,7 @@ for f_idx = start_frame : (end_frame - 1)
                     vx_final = vx_f / 256;
                     vy_final = vy_f / 256;
 
-                    if abs(vx_final) < 3 || abs(vy_final) < 3
+                    if abs(vx_final) < 5 && abs(vy_final) < 5
                         Vx(i,j) = vx_final * mul;
                         Vy(i,j) = vy_final * mul;
                     else

@@ -221,7 +221,7 @@ for f_idx = start_frame : (end_frame - 1)
 
         % --- 平均後才做所有 thresholding ---
         pass_harris = R_avg > threshold;
-        pass_flow   = abs(Vx_avg) < 3 | abs(Vy_avg) < 3;
+        pass_flow   = abs(Vx_avg) < 3 && abs(Vy_avg) < 3;
         pass        = valid & pass_harris & pass_flow;
 
         Vx_out = zeros(n_gy, n_gx);
