@@ -2,7 +2,7 @@
 `timescale 1ns/10ps
 `define CYCLE 3
 `define HCYCLE (`CYCLE/2.0)
-`define N  74529
+`define N  78400
 
 
 module tb;
@@ -177,16 +177,16 @@ end
 
 initial begin
 
-    $readmemh("../00_TB/a_kitti.txt",a_mem);
-    $readmemh("../00_TB/b_kitti.txt",b_mem);
+    $readmemh("../00_TB/a_highway.txt",a_mem);
+    $readmemh("../00_TB/b_highway.txt",b_mem);
 
     // answer.txt 一行一個12bit hex
-    $readmemh("../00_TB/ans_kitti.txt",answer_mem);
+    $readmemh("../00_TB/ans_highway.txt",answer_mem);
 
     rst_n = 0;
     ans_idx = 0;
     error_cnt = 0;
-    #(`CYCLE*1.8);
+    #(`CYCLE*1.5);
     rst_n = 1;
 
 
@@ -201,7 +201,7 @@ initial begin
 
 
 
-    #(6*`CYCLE);
+    #(10*`CYCLE);
 
     //////////////////////////////////////////
     // summary
