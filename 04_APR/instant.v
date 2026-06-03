@@ -1,8 +1,9 @@
 
 
-module CHIP ( clk, rst_n, a, b, valid, Vout);
+module CHIP ( clk, rst_n, a, b, first_row ,valid, Vout);
   input [7:0] a;
   input [7:0] b;
+  input first_row;
   output  valid;
   output [11:0] Vout;
   input clk, rst_n;
@@ -15,12 +16,14 @@ module CHIP ( clk, rst_n, a, b, valid, Vout);
   wire [11:0] i_data_o;
   wire i_clk_p_i, i_reset_n_i;
   wire n_logic0,n_logic1;
-  LK LK_in( .clk(i_clk_p_i), .rst_n(i_reset_n_i), .a(i_data_a_i), .b(i_data_b_i), .valid(i_valid_o), .Vout(i_data_o) );
+  wire i_first_row;
+  LK LK_in( .clk(i_clk_p_i), .rst_n(i_reset_n_i), .a(i_data_a_i), .b(i_data_b_i),.first_row(i_first_row) , .valid(i_valid_o), .Vout(i_data_o) );
   
   TIE0 ipad_n_logic0(.O(n_logic0));
   TIE1 ipad_n_logic1(.O(n_logic1));
   XMD ipad_clk_p_i (.O(i_clk_p_i), .I(clk), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
   XMD ipad_reset_n_i (.O(i_reset_n_i), .I(rst_n), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
+  XMD ipad_first_row_i (.O(i_first_row), .I(first_row), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
   XMD ipad_data_a_i_0 (.O(i_data_a_i[0]), .I(a[0]), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
   XMD ipad_data_a_i_1 (.O(i_data_a_i[1]), .I(a[1]), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
   XMD ipad_data_a_i_2 (.O(i_data_a_i[2]), .I(a[2]), .PU(n_logic0), .PD(n_logic0), .SMT(n_logic0));
