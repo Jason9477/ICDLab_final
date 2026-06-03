@@ -84,76 +84,68 @@ real ans2_decimal;
 always @(posedge clk) begin
 
     if(valid) begin
-        
+
         if(prev_valid) begin
-             $display("\n===== Compare #%0d ~ #%0d =====",ans_idx,ans_idx+1);
-             $display(
+
+            // Q3.8 -> decimal  (先算，再印 / 比較)
+            vout1_decimal = $signed(prev_Vout)/256.0;
+            vout2_decimal = $signed(Vout)/256.0;
+            ans1_decimal  = answer_mem[ans_idx]/256.0;
+            ans2_decimal  = answer_mem[ans_idx+1]/256.0;
+
+            $display("\n===== Compare #%0d  =====",ans_idx/2);
+            $display(
+                "Expected=%b (%f)",
+                answer_mem[ans_idx],
+                ans1_decimal);
+            $display(
+                "Got     =%b (%f)",
+                prev_Vout,
+                vout1_decimal);
+            $display(
                 "Expected=%b (%f)",
                 answer_mem[ans_idx+1],
                 ans2_decimal);
-                $display(
+            $display(
                 "Got     =%b (%f)",
                 Vout,
                 vout2_decimal);
-            // Q3.8 -> decimal
-            vout1_decimal = $signed(prev_Vout)/256.0;
-            vout2_decimal = $signed(Vout)/256.0;
-
-            ans1_decimal =
-                answer_mem[ans_idx]/256.0;
-
-            ans2_decimal =
-                answer_mem[ans_idx+1]/256.0;
-
 
             /////////////////////////////////////
             // compare prev_Vout
             /////////////////////////////////////
+            if($signed(prev_Vout) !== answer_mem[ans_idx]) begin
 
-            if($signed(prev_Vout)
-                !== answer_mem[ans_idx]) begin
-               
                 error_cnt = error_cnt + 1;
 
-                $display("\nERROR idx=%0d",
-                         ans_idx);
-
+                $display("\nERROR idx=%0d", ans_idx);
                 $display(
                 "Expected=%b (%f)",
                 answer_mem[ans_idx],
                 ans1_decimal);
-
                 $display(
                 "Got     =%b (%f)",
                 prev_Vout,
                 vout1_decimal);
-
             end
-
 
             /////////////////////////////////////
             // compare current Vout
             /////////////////////////////////////
-
             if($signed(Vout) !== answer_mem[ans_idx+1]) begin
-                
+
                 error_cnt = error_cnt + 1;
 
-                $display("\nERROR idx=%0d",
-                         ans_idx+1);
-
+                $display("\nERROR idx=%0d", ans_idx+1);
                 $display(
                 "Expected=%b (%f)",
                 answer_mem[ans_idx+1],
                 ans2_decimal);
-
                 $display(
                 "Got     =%b (%f)",
                 Vout,
                 vout2_decimal);
-
             end
-
 
             ans_idx = ans_idx + 2;
 
