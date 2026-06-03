@@ -25,7 +25,7 @@ module tb;
 reg clk;
 reg rst_n;
 reg [7:0] a, b;
-reg       first_row;
+reg       top_row;
 
 wire        valid;
 wire [11:0] Vout;
@@ -45,7 +45,7 @@ LK uut(
     .rst_n    (rst_n),
     .a        (a),
     .b        (b),
-    .first_row(first_row),
+    .top_row(top_row),
     .valid    (valid),
     .Vout     (Vout)
 );
@@ -138,7 +138,7 @@ initial begin
     rst_n     = 0;
     ans_idx   = 0;
     error_cnt = 0;
-    first_row = 0;
+    top_row = 0;
     a         = 0;
     b         = 0;
     idx       = 0;
@@ -146,11 +146,11 @@ initial begin
     #(`CYCLE*1);
     rst_n = 1;
 
-    // 逐 column 餵入;每個 column 第一拍拉一拍 first_row
+    // 逐 column 餵入;每個 column 第一拍拉一拍 top_row
     for (c = 0; c < `N_COLS; c = c + 1) begin
         for (k = 0; k < `PER_COL; k = k + 1) begin
             @(negedge clk);
-            first_row = (k == 0) ? 1'b1 : 1'b0;   // 每個 column 開頭拉一拍
+            top_row = (k == 0) ? 1'b1 : 1'b0;   // 每個 column 開頭拉一拍
             a = a_mem[idx];
             b = b_mem[idx];
             idx = idx + 1;
@@ -158,7 +158,7 @@ initial begin
     end
 
     @(negedge clk);
-    first_row = 0;
+    top_row = 0;
 
     #(11*`CYCLE);
 
