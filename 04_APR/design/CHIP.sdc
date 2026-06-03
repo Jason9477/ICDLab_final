@@ -1,6 +1,6 @@
 ###################################################################
 
-# Created by write_sdc on Tue Jun  2 23:33:16 2026
+# Created by write_sdc on Thu Jun  4 00:34:48 2026
 
 ###################################################################
 set sdc_version 2.1
@@ -23,7 +23,7 @@ set_load -pin_load 10 [get_ports {Vout[2]}]
 set_load -pin_load 10 [get_ports {Vout[1]}]
 set_load -pin_load 10 [get_ports {Vout[0]}]
 set_ideal_network [get_ports clk]
-create_clock [get_ports clk]  -period 5  -waveform {0 2.5}
+create_clock [get_ports clk]  -period 8  -waveform {0 4}
 set_clock_latency 0.5  [get_clocks clk]
 set_clock_uncertainty 0.1  [get_clocks clk]
 set_input_delay -clock clk  -max 1  [get_ports clk]
@@ -44,6 +44,7 @@ set_input_delay -clock clk  -max 1  [get_ports {b[3]}]
 set_input_delay -clock clk  -max 1  [get_ports {b[2]}]
 set_input_delay -clock clk  -max 1  [get_ports {b[1]}]
 set_input_delay -clock clk  -max 1  [get_ports {b[0]}]
+set_input_delay -clock clk  -max 1  [get_ports top_row]
 set_output_delay -clock clk  -min 0.5  [get_ports valid]
 set_output_delay -clock clk  -min 0.5  [get_ports {Vout[11]}]
 set_output_delay -clock clk  -min 0.5  [get_ports {Vout[10]}]
@@ -75,3 +76,4 @@ set_drive 1  [get_ports {b[3]}]
 set_drive 1  [get_ports {b[2]}]
 set_drive 1  [get_ports {b[1]}]
 set_drive 1  [get_ports {b[0]}]
+set_drive 1  [get_ports top_row]
