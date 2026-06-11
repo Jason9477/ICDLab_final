@@ -44,13 +44,18 @@ module LK #(parameter width = 8)(
     wire [width*2+1:0] Iy_now2 = Iy_now * Iy_now;
 
     reg [width-1:0] a_reg, b_reg;
+    wire coleq0 = (col_reg == 0);
+    wire roweq0 = (row_reg == 0);
+    wire coleq6 = (col_reg == 6);
+    wire roweq6 = (row_reg == 6);
+    wire roweq2 = (row_reg == 2);
 
     // ---------------- enable / shift control ----------------
-    wire Ix_shift = (col_reg != 0) && (row_reg != 0) ;// && (row_reg != 6) ;                          // 何時 shift Ix
-    wire Ix_en    = Ix_shift && (col_reg != 1) && (row_reg != 6);              // 何時計算 Ix^2 / IxIt
-    wire Iy_en    = (col_reg != 6) && (col_reg != 0) &&
-                    (row_reg != 0  && row_reg != 1);                           // 何時計算 Iy^2 / IxIy / IyIt
-    wire It_shift = (col_reg != 6) && (col_reg != 0) && (row_reg != 0);        // 何時 shift It
+    wire Ix_shift = (~coleq0) && (!roweq0) ;// && (row_reg != 6) ;                          // 何時 shift Ix
+    wire Ix_en    = Ix_shift && (col_reg != 1) && (!roweq6);              // 何時計算 Ix^2 / IxIt
+    wire Iy_en    = (!coleq6) && (!coleq0) &&
+                    (!roweq0  && row_reg != 1);                           // 何時計算 Iy^2 / IxIy / IyIt
+    wire It_shift = (!coleq6) && (!coleq0) && (!roweq0);        // 何時 shift It
 
     always @(*) begin
         Ix_now = a_reg - img1[12];
@@ -80,17 +85,17 @@ module LK #(parameter width = 8)(
         end
          // window 邊界清零累加器，否則正常累加
             if(first_row_reg) begin
-                if (col_reg == 0 && row_reg == 2) begin
+                if (coleq0 && roweq2) begin
                     Iy2  <= 0;
                     IyIt <= 0;
                     IxIy <= 0;
-                end else if (col_reg == 0 && row_reg == 1) begin
+                end else if (coleq0 && row_reg == 1) begin
                     Ix2 <= 0;
                     IxIt <= 0;
                    
                 end
             end else begin
-                    if (col_reg == 0 && row_reg == 2) begin
+                    if (coleq0 && roweq2) begin
                     Ix2 <= Ix2_new;
                     IxIt <= IxIt_new;
                     Iy2  <= 0;
@@ -99,7 +104,7 @@ module LK #(parameter width = 8)(
                     end 
 
             end
-            if(col_reg == 6 && row_reg == 6) begin 
+            if(coleq6 && roweq6) begin 
                 Ix2_reg <= Ix2;
                 Iy2_reg <= Iy2;
                 IxIy_reg <= IxIy;
@@ -109,14 +114,14 @@ module LK #(parameter width = 8)(
     end
     end
     always @(posedge clk) begin
-            if(row_reg ==5 ) begin
+            if(row_reg ==6 ) begin
+                if(coleq0 || col_reg == 1) begin 
                 Ix2_new <=0;
                 IxIt_new <=0;
-            end
-            else if(row_reg == 6 && col_reg !=0 && col_reg!=1) begin
+                end else begin
                 Ix2_new  <= Ix2_new  + Ix_now2;
                 IxIt_new <= IxIt_new + IxIt_now;
-            
+                end
             end
     end
     // ================= auto-scale: find leading-one position of accumulators =================
@@ -137,14 +142,14 @@ module LK #(parameter width = 8)(
     always @(*) begin
         mul_src       = 0;
         mul_pos_valid = 0;
-        if (row_reg == 6) begin
+        if (roweq6) begin
             case (col_reg)
                 4: begin mul_src = Ix2;  mul_pos_valid = 1; end
                 5: begin mul_src = IxIt; mul_pos_valid = 1; end
                 6: begin mul_src = Iy2;  mul_pos_valid = 1; end
             endcase
         end
-        else if (row_reg == 0 || row_reg == 2) begin
+        else if (roweq0 || roweq2) begin
             case (col_reg)
                 0: begin mul_src = IxIy; mul_pos_valid = 1; end
                 1: begin mul_src = IyIt_reg; mul_pos_valid = 1; end
@@ -201,7 +206,7 @@ module LK #(parameter width = 8)(
         end
         else begin
             if(~first_row_reg) begin
-            if (col_reg == 2 && row_reg == 2) begin
+            if (col_reg == 2 && roweq2) begin
                 Iy2_IxIt_reg  <= Iy2_IxIt;
                 Ix2_IyIt_reg  <= Ix2_IyIt;
                 Ix2_Iy2_reg   <= Ix2_Iy2;
@@ -210,7 +215,7 @@ module LK #(parameter width = 8)(
                 IxIy2_reg     <= IxIy2;
             end
             end else begin
-                if(col_reg == 2 && row_reg == 0) begin
+                if(col_reg == 2 && roweq0) begin
                 Iy2_IxIt_reg  <= Iy2_IxIt;
                 Ix2_IyIt_reg  <= Ix2_IyIt;
                 Ix2_Iy2_reg   <= Ix2_Iy2;
@@ -266,9 +271,9 @@ module LK #(parameter width = 8)(
         if (~rst_n) corner_reg <= 0;
         else  begin
             if(~first_row_reg) begin
-                if (col_reg == 4 && row_reg == 2) corner_reg <= corner;
+                if (col_reg == 4 && roweq2) corner_reg <= corner;
             end else begin
-                if(col_reg == 4 && row_reg == 0) corner_reg <= corner;
+                if(col_reg == 4 && roweq0) corner_reg <= corner;
             end
 
         end
@@ -338,39 +343,39 @@ module LK #(parameter width = 8)(
             shift_amount_reg <= shift_amount;
             det_signed       <= det[4*width];
 
-            if (row_reg == 6 && col_reg == 6) first_row_reg <= top_row;
+            if (roweq6 && coleq6) first_row_reg <= top_row;
             // 在 window 邊界輸出 vx / vy
             if(first_row_reg) begin
-                if (col_reg == 5 && row_reg == 0) begin
+                if (col_reg == 5 && roweq0) begin
                     Vout <= vx_reg;
                     if (start_valid) valid <= 1;
                     else             start_valid <= 1;
                 end
-                else if (col_reg == 6 && row_reg == 0) begin
+                else if (coleq6 && roweq0) begin
                     Vout <= vy_reg;
                 end
 
-                if (col_reg == 0 && row_reg == 1) begin
+                if (coleq0 && row_reg == 1) begin
                     valid <= 0;
                 end
-                if(col_reg == 3 &&  row_reg == 0) begin
+                if(col_reg == 3 &&  roweq0) begin
                     Ux_reg <= Ux;
                     Uy_reg <= Uy;
                     det_reg <= det;
                 end
             end else begin
-                if (col_reg == 5 && row_reg == 2) begin
+                if (col_reg == 5 && roweq2) begin
                 Vout <= vx_reg;
                 valid <= 1;
                 end
-                else if (col_reg == 6 && row_reg == 2) begin
+                else if (coleq6 && roweq2) begin
                     Vout <= vy_reg;
                 end
 
-                if (col_reg == 0 && row_reg == 3) begin
+                if (coleq0 && row_reg == 3) begin
                     valid <= 0;
                 end
-                if (col_reg == 3 && row_reg == 2 ) begin
+                if (col_reg == 3 && roweq2 ) begin
                     Ux_reg <= Ux;
                     Uy_reg <= Uy;
                     det_reg <= det;
@@ -389,8 +394,8 @@ module LK #(parameter width = 8)(
             col_reg <= 6;
         end
         else begin
-            if (col_reg == 6) begin    // 0 到 6 代表 7 個數
-                if (row_reg == 6) begin
+            if (coleq6) begin    // 0 到 6 代表 7 個數
+                if (roweq6) begin
                     col_reg <= 0;
                     if(top_row) begin
                         row_reg <= 0;
